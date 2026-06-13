@@ -27,7 +27,7 @@ class CircleSegmentationDataset(Dataset):
 
             for _ in range(num_circles):
               color_idx = np.random.randint(0, 3)
-              chosen_color = color[color_idx]
+              chosen_color = colors[color_idx]
 
               attempts = 0 # 嘗試次數
               success = False
@@ -52,7 +52,7 @@ class CircleSegmentationDataset(Dataset):
                       distance_from_center = np.sqrt((X - x)**2 + (Y - y)**2) 
                       mask_area = (distance_from_center <= r)
                       # 塗色
-                      images[i][mask_area] = color
+                      images[i][mask_area] = chosen_color
                       masks[i][mask_area] = 255
                       break
                   attempts += 1
@@ -77,6 +77,5 @@ class CircleSegmentationDataset(Dataset):
         return x_patch, y_patch
 def get_dataloader(batch_size=16, num_samples=800, shuffle=True):
     """ 最終對接接口 打包成 PyTorch DataLoader輸出維度必為 (B, 256, 64) """
-    dataset = 
-CircleSegmentationDataset(num_samples=num_samples)
+    dataset = CircleSegmentationDataset(num_samples=num_samples)    
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
