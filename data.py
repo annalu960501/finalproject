@@ -79,8 +79,11 @@ class CircleSegmentationDataset(Dataset):
 
 def reconstruct_mask(model_output):
     """
-    把 Transformer 輸出的 (256, 64) 預測結果，還原成 128x128 的二元化圖片
+    把 Transformer 輸出的 (B, 256, 64) 預測結果，還原成 (B, 128, 128)的二元化圖片
     """
+    # 自動抓取目前的 Batch Size (B) 是多少
+    B = model_output.size(0)
+    
     # 1. 二分法 (Thresholding)：大於 0.5 變 1，小於等於 0.5 變 0
     binary_mask = (model_output > 0.5).float()
     
@@ -90,9 +93,9 @@ def reconstruct_mask(model_output):
     # 3. Reassembling：把 (256, 64) 拼回 (128, 128)
     # 把 __getitem__ 切塊的動作反過來做
     
-    reshaped = scaled_mask.reshape(16, 16, 8, 8)
-    permuted = reshaped.permute(0, 2, 1, 3) # 把區塊和像素的位置換回來
-    final_image = permuted.reshape(128, 128)
+    reshaped = scaled_mask.reshape(B, 16, 16, 8, 8)
+    permuted = reshaped.permute(0, 1, 3, 2, 4) # 把區塊和像素的位置換回來
+    final_image = permuted.reshape(B, 128, 128)
     
     return final_image
     
