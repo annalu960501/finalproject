@@ -81,7 +81,7 @@ def reconstruct_mask(model_output):
     """
     把 Transformer 輸出的 (B, 256, 64) 預測結果，還原成 (B, 128, 128)的二元化圖片
     """
-    # 自動抓取目前的 Batch Size (B) 是多少
+    # 抓目前的 Batch Size (B) 是多少
     B = model_output.size(0)
     
     # 1. 二分法 (Thresholding)：大於 0.5 變 1，小於等於 0.5 變 0
