@@ -68,13 +68,34 @@ class CircleSegmentationDataset(Dataset):
         # TODO: 實作 Patch 序列化前處理邏輯(切成8*8)
 
         x_patch = raw_image.reshape(16, 8, 16, 8, 3) # 將128拆成16份的8
-        x_patch = x_patch.permute(0, 2, 1, 3, 4) # 調換位置，讓"區塊的座標(行,列)"跟"區塊的像素(行,列)"歸在一起
-        x_patch = x_patch.reshape(256, 192) # (16, 16, 8, 8, 3) -> (256, 192)
+        x_patch = x_patch.permute(0, 2, 1, 3, 4) # 調換位置，讓"區塊的座標(行,列)"跟"區塊的像素(行,列)"歸在一起 (16, 16, 8, 8, 3) 
+        x_patch = x_patch.mean(dim = -1) # 最後一個維度算平均(降維)
+        x_patch = x_patch.reshape(256, 64)/255.0 # 把特徵值都除255.0(歸一化)
         y_patch = raw_mask.reshape(16, 8 ,16 ,8)
         y_patch = y_patch.permute(0, 2, 1, 3)
-        y_patch = y_patch.reshape(256, 64)
+        y_patch = y_patch.reshape(256, 64)/255.0
         
         return x_patch, y_patch
+
+def reconstruct_mask(model_output):
+    """
+    把 Transformer 輸出的 (256, 64) 預測結果，還原成 128x128 的二元化圖片
+    """
+    # 1. 二分法 (Thresholding)：大於 0.5 變 1，小於等於 0.5 變 0
+    binary_mask = (model_output > 0.5).float()
+    
+    # 2. 縮放 (Scaling)：放大回 0~255 的像素值
+    scaled_mask = binary_mask * 255.0
+    
+    # 3. Reassembling：把 (256, 64) 拼回 (128, 128)
+    # 把 __getitem__ 切塊的動作反過來做
+    
+    reshaped = scaled_mask.reshape(16, 16, 8, 8)
+    permuted = reshaped.permute(0, 2, 1, 3) # 把區塊和像素的位置換回來
+    final_image = permuted.reshape(128, 128)
+    
+    return final_image
+    
 def get_dataloader(batch_size=16, num_samples=800, shuffle=True):
     """ 最終對接接口 打包成 PyTorch DataLoader輸出維度必為 (B, 256, 64) """
     dataset = CircleSegmentationDataset(num_samples=num_samples)    
